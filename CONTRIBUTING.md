@@ -5,7 +5,7 @@ Thanks for wanting to help! Bug reports, ideas and pull requests are all welcome
 ## Running from source
 
 ```bash
-git clone https://github.com/dxteipx/kestrel.git
+git clone https://github.com/dxteipx/Kestrel.git
 cd kestrel
 python -m venv .venv
 .venv\Scripts\activate
@@ -21,6 +21,15 @@ Kestrel is Windows-only (10 and 11) and needs Python 3.10 or newer.
 - `kestrel/ui` is the interface. Pages live in `kestrel/ui/pages`, one file each, built from the pieces in `widgets.py`.
 - `kestrel/ui/art.py` draws every gradient, gauge and chart with Pillow. Pass it resolved hex colors, never `(light, dark)` pairs.
 - Anything slow (PowerShell, disk scans) goes through `kestrel.ui.background.run` so the window never freezes.
+
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+Logic in `kestrel/core` should come with a test when it parses or decides something (see `tests/`).
 
 ## Pull requests
 

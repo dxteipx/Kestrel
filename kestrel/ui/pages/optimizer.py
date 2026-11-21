@@ -15,7 +15,7 @@ class TaskRow(ctk.CTkFrame):
     def __init__(self, master, task: Task, on_run):
         super().__init__(master, fg_color="transparent")
         self.task = task
-        self.selected = ctk.BooleanVar(value=not task.destructive)
+        self.selected = ctk.BooleanVar(value=not (task.destructive or task.needs_admin))
 
         ctk.CTkCheckBox(self, text="", variable=self.selected, width=22, checkbox_width=20, checkbox_height=20,
                         corner_radius=6, border_width=2, fg_color=theme.accent(), hover_color=theme.accent_hover(),
@@ -77,6 +77,11 @@ class OptimizerPage(Page):
         background.run(self, optimizer.measure_temp, on_done=self._show_temp_size)
         background.run(self, optimizer.recycle_bin_size, on_done=self._show_bin_size)
         background.run(self, optimizer.power_plans, on_done=self._show_plans)
+        background.run(self, optimizer.measure_browser_caches,
+                       on_done=lambda size: self._row("browsers").set_status(f"{fmt.size(size)} to free",
+                                                                             theme.accent()))
+        if not self.app.is_admin:
+            self._row("restore").set_status("Needs admin", theme.WARNING)
 
     def _row(self, key: str) -> TaskRow:
         return next(row for row in self.rows if row.task.key == key)
@@ -137,7 +142,7 @@ class OptimizerPage(Page):
                 row.set_status("Done", theme.SUCCESS)
                 row.run_button.configure(state="normal")
                 self.app.toast(message)
-                if row.task.key in ("temp", "recycle"):
+                if row.task.key in ("temp", "recycle", "browsers"):
                     self.after(400, self.on_show)
 
             def failed(error: Exception, row=row) -> None:

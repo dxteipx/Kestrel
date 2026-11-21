@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import customtkinter as ctk
 import psutil
 
 from kestrel import formatting as fmt
-from kestrel.core import system
+from kestrel import theme
+from kestrel.core import gpu, system
 from kestrel.core.system import Snapshot
 from kestrel.ui import background
 from kestrel.ui import widgets as w
@@ -28,12 +30,24 @@ class SystemPage(Page):
         w.muted(self.hardware_body, "Reading your hardware…").pack(anchor="w")
         self._profile: list[tuple[str, str]] = []
 
-        storage = w.Card(top, "Storage")
-        storage.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+        right = ctk.CTkFrame(top, fg_color="transparent")
+        right.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+        storage = w.Card(right, "Storage")
+        storage.pack(fill="x")
         for disk in system.disks():
             bar = w.UsageBar(storage.body, f"{disk.label}  ·  {disk.filesystem}")
             bar.set(disk.fraction, f"{fmt.size(disk.total - disk.used)} free of {fmt.size(disk.total, 0)}")
             bar.pack(fill="x", pady=(0, 14))
+
+        graphics = w.Card(right, "Graphics card", "Live, from the NVIDIA driver")
+        graphics.pack(fill="both", expand=True, pady=(16, 0))
+        self.gpu_body = graphics.body
+        self.gpu_name = w.label(self.gpu_body, "Looking for a supported GPU…", 13, "bold", wraplength=360)
+        self.gpu_name.pack(anchor="w", pady=(0, 10))
+        self.gpu_usage = w.UsageBar(self.gpu_body, "Load")
+        self.gpu_memory = w.UsageBar(self.gpu_body, "Video memory")
+        self.gpu_details = w.muted(self.gpu_body, "", 12)
+        self._gpu_supported: bool | None = None
 
         cores = w.Card(self.section(), "Processor load", "Per logical core")
         cores.pack(fill="x")
@@ -62,6 +76,33 @@ class SystemPage(Page):
         if not self._profile:
             background.run(self, system.hardware_profile, on_done=self._show_profile)
         self._refresh_processes()
+        self._refresh_gpu()
+
+    def _refresh_gpu(self) -> None:
+        if self._gpu_supported is not False:
+            background.run(self, gpu.read, on_done=self._show_gpu)
+
+    def _show_gpu(self, stats: gpu.GpuStats | None) -> None:
+        if stats is None:
+            self._gpu_supported = False
+            self.gpu_name.configure(text="Live stats are available for NVIDIA graphics cards.", font=theme.font(12),
+                                    text_color=theme.MUTED)
+            return
+        if not self._gpu_supported:
+            self._gpu_supported = True
+            self.gpu_usage.pack(fill="x", pady=(0, 14))
+            self.gpu_memory.pack(fill="x", pady=(0, 12))
+            self.gpu_details.pack(anchor="w")
+        self.gpu_name.configure(text=stats.name)
+        self.gpu_usage.set(stats.usage / 100, fmt.percent(stats.usage))
+        self.gpu_memory.set(stats.memory_fraction,
+                            f"{stats.memory_used_mb / 1024:.1f} of {stats.memory_total_mb / 1024:.0f} GB")
+        details = []
+        if stats.temperature is not None:
+            details.append(f"{stats.temperature:.0f} °C")
+        if stats.power_watts is not None:
+            details.append(f"{stats.power_watts:.0f} W")
+        self.gpu_details.configure(text="  ·  ".join(details))
 
     def _show_profile(self, profile: list[tuple[str, str]]) -> None:
         self._profile = profile
@@ -112,3 +153,4 @@ class SystemPage(Page):
         if self._tick_count * self.app.settings.refresh_ms >= 2000:
             self._tick_count = 0
             self._refresh_processes()
+            self._refresh_gpu()

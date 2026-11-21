@@ -97,6 +97,19 @@ GUIDES: tuple[Guide, ...] = (
         "system", "Open System",
     ),
     Guide(
+        "A safety net before big changes",
+        "Restore points, updates and what to do when something breaks.",
+        3, "Beginner",
+        (
+            "Before installing drivers or trying tweaks, open Optimizer and run “Create a restore point”.",
+            "It needs Kestrel running as administrator — Settings → Restart as admin.",
+            "If Windows misbehaves afterwards, search Start for “Create a restore point” → System Restore.",
+            "Kestrel updates itself every hour while it's open. You can turn that off in Settings → Updates.",
+            "Found a bug? Settings → Open log shows what went wrong — attach it to a GitHub issue.",
+        ),
+        "optimizer", "Open Optimizer",
+    ),
+    Guide(
         "Contributing to Kestrel",
         "Kestrel is open source — here's how to help.",
         4, "Advanced",

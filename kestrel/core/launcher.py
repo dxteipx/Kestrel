@@ -90,6 +90,8 @@ WINDOWS_TOOLS: list[AppEntry] = [
     AppEntry("Command Prompt", "cmd"),
     AppEntry("PowerShell", "powershell"),
     AppEntry("Windows Settings", "ms-settings:"),
+    AppEntry("Uninstall programs", "appwiz.cpl"),
+    AppEntry("Network connections", "ncpa.cpl"),
 ]
 
 

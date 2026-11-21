@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 import time
 import winreg
 from dataclasses import dataclass
@@ -118,6 +119,31 @@ def list_items() -> list[StartupItem]:
 
     items.sort(key=lambda item: item.display_name.lower())
     return items
+
+
+# --- Kestrel itself -------------------------------------------------------------
+
+_SELF_NAME = "Kestrel"
+
+
+def kestrel_autostart_supported() -> bool:
+    """Only the installed .exe can start with Windows; a source checkout can't."""
+    return bool(getattr(sys, "frozen", False))
+
+
+def kestrel_autostart_enabled() -> bool:
+    return any(name == _SELF_NAME for name, _ in _values(winreg.HKEY_CURRENT_USER, _RUN))
+
+
+def set_kestrel_autostart(enabled: bool) -> None:
+    with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, _RUN, 0, winreg.KEY_SET_VALUE) as key:
+        if enabled:
+            winreg.SetValueEx(key, _SELF_NAME, 0, winreg.REG_SZ, f'"{sys.executable}"')
+        else:
+            try:
+                winreg.DeleteValue(key, _SELF_NAME)
+            except FileNotFoundError:
+                pass
 
 
 def _filetime_now() -> bytes:

@@ -20,7 +20,10 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt pytest
+
+      - name: Unit tests
+        run: python -m pytest -q
 
       - name: Compile
         run: python -m compileall -q kestrel packaging main.py

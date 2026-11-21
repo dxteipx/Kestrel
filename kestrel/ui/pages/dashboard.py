@@ -8,7 +8,7 @@ import customtkinter as ctk
 
 from kestrel import formatting as fmt
 from kestrel import theme
-from kestrel.core import health, launcher, optimizer, startup
+from kestrel.core import gpu, health, launcher, optimizer, startup
 from kestrel.core.system import SYSTEM_DRIVE, Snapshot
 from kestrel.ui import art, background
 from kestrel.ui import widgets as w
@@ -105,6 +105,8 @@ class DashboardPage(Page):
         self.pinned_card.grid(row=0, column=1, sticky="nsew", padx=(9, 0))
         w.button(self.pinned_card.actions, "Browse", lambda: self.app.navigate("apps"), kind="ghost").pack()
 
+        self._gpu_ticks = 0
+        self._gpu_supported = True
         self._temp_bytes: int | None = None
         self._startup_enabled: int | None = None
 
@@ -128,6 +130,7 @@ class DashboardPage(Page):
             "power": w.key_value(card.body, "Power", key_width=110),
             "temp": w.key_value(card.body, "Temp files", "Measuring…", 110),
             "startup": w.key_value(card.body, "Startup apps", "Counting…", 110),
+            "gpu": w.key_value(card.body, "Graphics", "—", 110),
             "health": w.key_value(card.body, "Health", "—", 110),
         }
         return card
@@ -167,6 +170,14 @@ class DashboardPage(Page):
     def _show_startup(self, items) -> None:
         self._startup_enabled = sum(1 for item in items if item.enabled)
         self.glance["startup"].configure(text=f"{self._startup_enabled} of {len(items)} enabled")
+
+    def _show_gpu(self, stats: gpu.GpuStats | None) -> None:
+        if stats is None:
+            self._gpu_supported = False
+            self.glance["gpu"].configure(text="Not available")
+            return
+        temperature = f" · {stats.temperature:.0f} °C" if stats.temperature is not None else ""
+        self.glance["gpu"].configure(text=f"{stats.usage:.0f}% load{temperature}")
 
     def _render_pinned(self) -> None:
         for child in self.pinned_card.body.winfo_children():
@@ -212,6 +223,11 @@ class DashboardPage(Page):
         result = health.evaluate(snap, monitor.cpu_history, self._temp_bytes, self._startup_enabled)
         self.hero.set_health(result)
         self.glance["health"].configure(text=f"{result.score} / 100 · {result.label}")
+
+        self._gpu_ticks += 1
+        if self._gpu_supported and self._gpu_ticks * self.app.settings.refresh_ms >= 3000:
+            self._gpu_ticks = 0
+            background.run(self, gpu.read, on_done=self._show_gpu)
         self.glance["uptime"].configure(text=fmt.duration(snap.uptime))
         self.glance["processes"].configure(text=f"{snap.processes:,} running")
         battery = snap.battery

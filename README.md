@@ -7,12 +7,12 @@
 **A calm, all-in-one control center for Windows.**
 Live stats, cleanup, drivers, startup apps and a launcher for your apps and games — in one window.
 
-[![Release](https://img.shields.io/github/v/release/dxteipx/kestrel?color=8b5cf6)](https://github.com/dxteipx/kestrel/releases/latest)
+[![Release](https://img.shields.io/github/v/release/dxteipx/Kestrel?color=8b5cf6)](https://github.com/dxteipx/Kestrel/releases/latest)
 [![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011-22d3ee)](#)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-8b5cf6)](https://www.python.org/)
-[![License](https://img.shields.io/github/license/dxteipx/kestrel?color=22d3ee)](LICENSE)
+[![License](https://img.shields.io/github/license/dxteipx/Kestrel?color=22d3ee)](LICENSE)
 
-[**Download**](https://github.com/dxteipx/kestrel/releases/latest) · [Features](#features) · [Build from source](#build-from-source) · [Contributing](CONTRIBUTING.md)
+[**Download**](https://github.com/dxteipx/Kestrel/releases/latest) · [Features](#features) · [Build from source](#build-from-source) · [Contributing](CONTRIBUTING.md)
 
 <br>
 
@@ -24,15 +24,15 @@ Live stats, cleanup, drivers, startup apps and a launcher for your apps and game
 
 | | |
 | --- | --- |
-| **Dashboard** | Health score, live gauges for CPU, memory and storage, activity charts, one-click fixes and pinned apps |
-| **System & stats** | Full hardware profile you can copy, every drive, per-core load and the busiest processes (with End task) |
-| **Optimizer** | Clear temp files, empty the Recycle Bin, flush DNS, Game Mode, stop background recording, restart Explorer, switch power plans |
+| **Dashboard** | Health score, live gauges for CPU, memory and storage, GPU load and temperature, activity charts, one-click fixes and pinned apps |
+| **System & stats** | Full hardware profile you can copy, every drive, live NVIDIA GPU stats, per-core load and the busiest processes (with End task) |
+| **Optimizer** | Restore points, temp files, browser caches, Recycle Bin, DNS flush, Game Mode, background recording, Explorer restart, power plans |
 | **Drivers** | Lists installed drivers, finds updates on Windows Update, installs them and backs them up |
 | **Startup** | Turn startup programs on or off — the same way Task Manager does, nothing gets deleted |
 | **Apps** | Every installed app (Store apps included), searchable and pinnable, plus the Windows tools you keep looking for |
-| **Games** | Picks up Steam and Epic libraries, detects launchers, add any game by hand, Game boost |
+| **Games** | Picks up Steam and Epic libraries, detects launchers, add any game by hand, Game boost and a ping / packet-loss test |
 | **Tutorials** | Short, practical guides that link straight to the right page |
-| **Settings** | Light and dark themes, six gradient accents applied live, refresh rate, start page, admin mode |
+| **Settings** | Light and dark themes, six gradient accents applied live, start with Windows, refresh rate, start page, admin mode, error log |
 | **Updates** | Checks GitHub Releases every hour while open, then downloads and installs new versions by itself |
 
 Press <kbd>Ctrl</kbd> + <kbd>1</kbd>–<kbd>9</kbd> to jump between sections.
@@ -56,7 +56,7 @@ Press <kbd>Ctrl</kbd> + <kbd>1</kbd>–<kbd>9</kbd> to jump between sections.
 
 ## Install
 
-Grab **`Kestrel-Setup.exe`** from the [latest release](https://github.com/dxteipx/kestrel/releases/latest) and run it.
+Grab **`Kestrel-Setup.exe`** from the [latest release](https://github.com/dxteipx/Kestrel/releases/latest) and run it.
 
 - Installs for your user only — **no administrator rights needed**
 - Adds Start menu and desktop shortcuts, and can start Kestrel with Windows
@@ -73,16 +73,17 @@ Some actions — machine-wide startup items, the Windows Temp folder, installing
 Requires Windows 10 or 11 and Python 3.10+.
 
 ```bash
-git clone https://github.com/dxteipx/kestrel.git
+git clone https://github.com/dxteipx/Kestrel.git
 cd kestrel
 pip install -r requirements.txt
 python main.py
 ```
 
-To build the installer yourself:
+Run the tests and build the installer yourself:
 
 ```bash
-pip install pyinstaller
+pip install -r requirements-dev.txt
+python -m pytest
 python packaging/build.py
 ```
 
@@ -99,6 +100,7 @@ GitHub Actions publishes the release, and every installed copy picks it up withi
 
 ```
 main.py                  entry point
+tests/                   unit tests (pytest)
 packaging/
 ├── build.py             builds Kestrel.exe and the installer
 └── installer.py         the setup / uninstall wizard
@@ -108,11 +110,15 @@ kestrel/
 ├── theme.py             palette, gradient accents and fonts
 ├── icons.py             Segoe Fluent / MDL2 glyphs
 ├── formatting.py        sizes, rates and durations
+├── instance.py          single-instance lock
+├── log.py               rotating error log
 ├── content/
 │   └── tutorials.py     guide text (plain data, easy to translate)
 ├── core/                Windows logic — no UI code in here
 │   ├── system.py        live metrics, hardware profile, processes
 │   ├── health.py        the 0–100 health score
+│   ├── gpu.py           live NVIDIA GPU stats
+│   ├── network.py       ping, jitter and packet loss
 │   ├── updater.py       checks GitHub Releases and installs updates
 │   ├── optimizer.py     maintenance tasks and power plans
 │   ├── drivers.py       installed drivers and Windows Update

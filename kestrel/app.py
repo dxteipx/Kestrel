@@ -8,6 +8,7 @@ from typing import Any, Callable
 import customtkinter as ctk
 
 from kestrel import __app_name__, __version__, icons, theme
+from kestrel.log import logger
 from kestrel.config import CONFIG_DIR, Settings
 from kestrel.core import shell, updater
 from kestrel.core.system import SystemMonitor
@@ -75,6 +76,23 @@ class KestrelApp(ctk.CTk):
         self.after(200, self._tick)
         self.after(60, self._fade_in)
         self.after(20_000, self._scheduled_update_check)
+        self.after(1200, self._announce_update)
+
+    def report_callback_exception(self, kind, error, trace) -> None:
+        """Any error inside a Tk callback ends up here instead of a silent console."""
+        logger.error("Error in the interface", exc_info=(kind, error, trace))
+        try:
+            self.toast("Something went wrong. Details were saved to the log (Settings → Open log).", "error")
+        except Exception:
+            pass
+
+    def _announce_update(self) -> None:
+        previous = self.settings.last_version
+        if previous != __version__:
+            self.settings.last_version = __version__
+            self.settings.save()
+            if previous:
+                self.toast(f"Kestrel was updated to {__version__}. See Settings → Updates for what's new.", "info")
 
     # --- Layout -----------------------------------------------------------
 
@@ -186,6 +204,7 @@ class KestrelApp(ctk.CTk):
                 on_done(result)
 
         def failed(error: Exception) -> None:
+            logger.warning("Task failed: %s", error, exc_info=error)
             if isinstance(error, PermissionError):
                 self.toast("That needs administrator rights. Restart Kestrel as admin from Settings.", "error")
             else:
@@ -220,6 +239,7 @@ class KestrelApp(ctk.CTk):
                 self.install_update(release, status)
 
         def failed(error: Exception) -> None:
+            logger.warning("Update check failed: %s", error)
             status("Couldn't reach GitHub. Check your connection and try again.")
             if manual:
                 self.toast(f"Update check failed: {error}", "error")
@@ -245,6 +265,7 @@ class KestrelApp(ctk.CTk):
 
         def failed(error: Exception) -> None:
             self._updating = False
+            logger.error("Update download failed: %s", error)
             status(f"Download failed: {error}")
             self.toast(f"Update failed: {error}", "error")
 

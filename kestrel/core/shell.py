@@ -63,16 +63,16 @@ def run_elevated(executable: str, params: str = "") -> bool:
     return result > 32
 
 
-def relaunch_as_admin() -> bool:
+def _relaunch_args() -> list[str]:
+    args = [a for a in sys.argv[1:] if a != "--restart"] + ["--restart"]
     if getattr(sys, "frozen", False):
-        params = subprocess.list2cmdline(sys.argv[1:])
-    else:
-        params = subprocess.list2cmdline([os.path.abspath(sys.argv[0]), *sys.argv[1:]])
-    return run_elevated(sys.executable, params)
+        return args
+    return [os.path.abspath(sys.argv[0]), *args]
+
+
+def relaunch_as_admin() -> bool:
+    return run_elevated(sys.executable, subprocess.list2cmdline(_relaunch_args()))
 
 
 def restart_app() -> None:
-    if getattr(sys, "frozen", False):
-        subprocess.Popen([sys.executable, *sys.argv[1:]])
-    else:
-        subprocess.Popen([sys.executable, os.path.abspath(sys.argv[0]), *sys.argv[1:]])
+    subprocess.Popen([sys.executable, *_relaunch_args()])

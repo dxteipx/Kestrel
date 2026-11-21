@@ -28,10 +28,10 @@ class AppsPage(Page):
         tools = w.Card(self.section(), "Windows tools")
         tools.pack(fill="x")
         grid = tools.body
-        grid.grid_columnconfigure(tuple(range(5)), weight=1, uniform="tools")
+        grid.grid_columnconfigure(tuple(range(6)), weight=1, uniform="tools")
         for index, tool in enumerate(launcher.WINDOWS_TOOLS):
             w.button(grid, tool.name, lambda t=tool: self._launch(t)).grid(
-                row=index // 5, column=index % 5, sticky="ew", padx=4, pady=4)
+                row=index // 6, column=index % 6, sticky="ew", padx=4, pady=4)
 
         self.list_card = w.Card(self.section(), "All apps")
         self.list_card.pack(fill="x")

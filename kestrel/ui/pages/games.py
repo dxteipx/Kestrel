@@ -6,7 +6,7 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 from kestrel import theme
-from kestrel.core import launcher, optimizer
+from kestrel.core import launcher, network, optimizer
 from kestrel.core.launcher import AppEntry, Game
 from kestrel.ui import art, background
 from kestrel.ui import widgets as w
@@ -50,8 +50,18 @@ class GamesPage(Page):
         w.button(actions, "Game boost", self._boost, width=110).pack(side="left", padx=(0, 8))
         w.button(actions, "Add game", self._add, kind="primary").pack(side="left")
 
-        self.launchers_card = w.Card(self.section(), "Launchers")
-        self.launchers_card.pack(fill="x")
+        top = self.section()
+        top.grid_columnconfigure(0, weight=3, uniform="games-top")
+        top.grid_columnconfigure(1, weight=2, uniform="games-top")
+        self.launchers_card = w.Card(top, "Launchers")
+        self.launchers_card.grid(row=0, column=0, sticky="nsew", padx=(0, 9))
+
+        connection = w.Card(top, "Connection", "Latency to public servers")
+        connection.grid(row=0, column=1, sticky="nsew", padx=(9, 0))
+        self.ping_button = w.button(connection.actions, "Test", self._test_connection, kind="primary", width=80)
+        self.ping_button.pack()
+        self.ping_body = connection.body
+        w.muted(self.ping_body, "Check your ping and packet loss before you queue up.", wraplength=320).pack(anchor="w")
 
         self.library = w.Card(self.section(), "Library")
         self.library.pack(fill="x")
@@ -80,6 +90,33 @@ class GamesPage(Page):
         row.pack(fill="x")
         for entry in found:
             w.button(row, entry.name, lambda e=entry: self._open_launcher(e), width=0).pack(side="left", padx=(0, 8))
+
+    def _test_connection(self) -> None:
+        self.ping_button.configure(state="disabled", text="Testing…")
+        background.run(self, network.test_connection, on_done=self._show_ping, on_error=self._ping_failed)
+
+    def _ping_failed(self, error: Exception) -> None:
+        self.ping_button.configure(state="normal", text="Test")
+        self.app.toast(f"Connection test failed: {error}", "error")
+
+    def _show_ping(self, results: list[network.PingResult]) -> None:
+        self.ping_button.configure(state="normal", text="Again")
+        for child in self.ping_body.winfo_children():
+            child.destroy()
+        colors = {"Great": theme.SUCCESS, "Good": theme.accent_end(), "Poor": theme.WARNING,
+                  "Unreachable": theme.DANGER}
+        for result in results:
+            row = ctk.CTkFrame(self.ping_body, fg_color="transparent")
+            row.pack(fill="x", pady=3)
+            w.label(row, result.name, 13, "bold", width=96).pack(side="left")
+            if result.average is None:
+                detail = "no reply"
+            else:
+                jitter = f" · ±{result.jitter:.0f}" if result.jitter is not None else ""
+                loss = f" · {result.loss:.0%} lost" if result.loss else ""
+                detail = f"{result.average:.0f} ms{jitter}{loss}"
+            w.muted(row, detail, 12).pack(side="left")
+            w.Badge(row, result.quality, colors[result.quality]).pack(side="right")
 
     def _show_games(self, games: list[Game]) -> None:
         self._games = games

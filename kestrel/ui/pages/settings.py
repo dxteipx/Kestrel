@@ -6,7 +6,8 @@ import customtkinter as ctk
 
 from kestrel import __app_name__, __author__, __repo__, __version__, icons, theme
 from kestrel.config import CONFIG_DIR
-from kestrel.core import shell
+from kestrel.core import shell, startup
+from kestrel.log import LOG_FILE
 from kestrel.ui import art
 from kestrel.ui import widgets as w
 from kestrel.ui.pages.base import Page
@@ -87,6 +88,19 @@ class SettingsPage(Page):
         )
         confirm.pack()
 
+        w.divider(behaviour.body)
+        supported = startup.kestrel_autostart_supported()
+        autostart = w.switch(
+            _setting_row(behaviour.body, "Start Kestrel with Windows",
+                         "Opens Kestrel when you sign in." if supported
+                         else "Available in the installed version of Kestrel."),
+            lambda: self._set_autostart(bool(autostart.get())),
+            supported and startup.kestrel_autostart_enabled(),
+        )
+        if not supported:
+            autostart.configure(state="disabled")
+        autostart.pack()
+
         self._updates_card()
 
         access = w.Card(self.section(), "Permissions & data")
@@ -103,7 +117,8 @@ class SettingsPage(Page):
         w.divider(access.body)
         data_control = _setting_row(access.body, "Your settings",
                                     f"Stored in {CONFIG_DIR}. Pinned apps and custom games live here too.")
-        w.button(data_control, "Open folder", self._open_config, kind="ghost", width=110).pack(side="left")
+        w.button(data_control, "Open log", self._open_log, kind="ghost", width=100).pack(side="left")
+        w.button(data_control, "Open folder", self._open_config, kind="ghost", width=110).pack(side="left", padx=(8, 0))
         w.button(data_control, "Reset", self._reset, kind="danger", width=80).pack(side="left", padx=(8, 0))
 
         self._about()
@@ -132,6 +147,20 @@ class SettingsPage(Page):
                          "themselves, then Kestrel reopens."),
             lambda: self._save(auto_update=not self.app.settings.auto_update), settings.auto_update,
         ).pack()
+
+    def _set_autostart(self, enabled: bool) -> None:
+        try:
+            startup.set_kestrel_autostart(enabled)
+        except OSError as error:
+            self.app.toast(f"Couldn't change it: {error}", "error")
+            return
+        self.app.toast("Kestrel will start with Windows" if enabled else "Kestrel won't start with Windows anymore")
+
+    def _open_log(self) -> None:
+        if LOG_FILE.exists():
+            shell.reveal(str(LOG_FILE))
+        else:
+            self.app.toast("No log yet — that means nothing has gone wrong.", "info")
 
     def _check_updates(self) -> None:
         def show(text: str) -> None:

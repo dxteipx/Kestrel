@@ -160,6 +160,86 @@ def game_boost() -> str:
     return " · ".join(done)
 
 
+# --- Browser caches -----------------------------------------------------------
+
+_CHROMIUM_ROOTS = (
+    ("LOCALAPPDATA", r"Google\Chrome\User Data"),
+    ("LOCALAPPDATA", r"Microsoft\Edge\User Data"),
+    ("LOCALAPPDATA", r"BraveSoftware\Brave-Browser\User Data"),
+    ("APPDATA", r"Opera Software\Opera GX Stable"),
+)
+_CHROMIUM_CACHES = ("Cache", "Code Cache", "GPUCache")
+
+
+def browser_cache_folders() -> list[Path]:
+    """Cache folders only — never cookies, history or saved logins."""
+    folders: list[Path] = []
+    for variable, relative in _CHROMIUM_ROOTS:
+        root = Path(os.environ.get(variable, "")) / relative
+        if not root.is_dir():
+            continue
+        profiles = [root] + [p for p in root.iterdir()
+                             if p.is_dir() and (p.name == "Default" or p.name.startswith("Profile "))]
+        folders += [profile / cache for profile in profiles for cache in _CHROMIUM_CACHES
+                    if (profile / cache).is_dir()]
+    firefox = Path(os.environ.get("LOCALAPPDATA", "")) / r"Mozilla\Firefox\Profiles"
+    if firefox.is_dir():
+        folders += [profile / "cache2" for profile in firefox.iterdir() if (profile / "cache2").is_dir()]
+    return folders
+
+
+def _files(folder: Path):
+    for root, _dirs, files in os.walk(folder, onerror=lambda _e: None):
+        for name in files:
+            yield os.path.join(root, name)
+
+
+def measure_browser_caches() -> int:
+    total = 0
+    for folder in browser_cache_folders():
+        for path in _files(folder):
+            try:
+                total += os.path.getsize(path)
+            except OSError:
+                pass
+    return total
+
+
+def clean_browser_caches() -> str:
+    freed = skipped = 0
+    for folder in browser_cache_folders():
+        for path in _files(folder):
+            try:
+                size = os.path.getsize(path)
+                os.remove(path)
+            except OSError:
+                skipped += 1
+                continue
+            freed += size
+    note = " · close your browsers to clear the rest" if skipped else ""
+    return f"Freed {fmt.size(freed)} of browser cache{note}"
+
+
+# --- Restore points -----------------------------------------------------------
+
+_RESTORE_SCRIPT = (
+    "Checkpoint-Computer -Description 'Kestrel' -RestorePointType MODIFY_SETTINGS "
+    "-WarningVariable skipped -WarningAction SilentlyContinue -ErrorAction Stop; "
+    "if ($skipped) { 'SKIPPED' } else { 'CREATED' }"
+)
+
+
+def create_restore_point() -> str:
+    if not shell.is_admin():
+        raise PermissionError("Restart Kestrel as administrator to create restore points.")
+    output = shell.powershell(_RESTORE_SCRIPT, timeout=300)
+    if "CREATED" in output:
+        return "Restore point created — you can roll Windows back to this moment"
+    if "SKIPPED" in output:
+        return "Windows made a restore point in the last 24 hours, so it kept that one"
+    raise RuntimeError("Windows couldn't create a restore point. System Protection may be off for drive C:.")
+
+
 # --- Task catalogue -----------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -170,12 +250,19 @@ class Task:
     icon: str
     run: Callable[[], str]
     destructive: bool = False
+    needs_admin: bool = False
 
 
 TASKS: list[Task] = [
+    Task("restore", "Create a restore point",
+         "A safety net before big changes: lets you roll Windows back if something goes wrong.",
+         "shield", create_restore_point, needs_admin=True),
     Task("temp", "Clear temporary files",
          "Removes leftovers from installers and apps. Files used in the last hour are kept.",
          "delete", clean_temp, destructive=True),
+    Task("browsers", "Clear browser caches",
+         "Frees space used by Chrome, Edge, Brave, Opera GX and Firefox. Logins and history stay.",
+         "globe", clean_browser_caches, destructive=True),
     Task("recycle", "Empty Recycle Bin",
          "Permanently deletes everything currently in the Recycle Bin.",
          "recycle", empty_recycle_bin, destructive=True),

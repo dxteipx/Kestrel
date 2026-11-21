@@ -6,7 +6,7 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 from kestrel import theme
-from kestrel.core import launcher, network, optimizer
+from kestrel.core import artwork, launcher, network, optimizer
 from kestrel.core.launcher import AppEntry, Game
 from kestrel.ui import art, background
 from kestrel.ui import widgets as w
@@ -23,7 +23,11 @@ class GameCard(ctk.CTkFrame):
         palette = list(theme.ACCENTS.values())
         start, end = palette[sum(map(ord, game.name)) % len(palette)]
         cover = art.cover(*_COVER, game.name, start, end, theme.resolve(theme.SURFACE))
-        ctk.CTkLabel(self, text="", image=cover, fg_color="transparent").pack(padx=10, pady=(10, 0))
+        self.cover = ctk.CTkLabel(self, text="", image=cover, fg_color="transparent")
+        self.cover.pack(padx=10, pady=(10, 0))
+        if game.art_id:
+            # Start with the generated art, swap in the real cover once it's found or downloaded.
+            background.run(self, artwork.cover, game, on_done=self._show_photo)
 
         info = ctk.CTkFrame(self, fg_color="transparent")
         info.pack(fill="x", padx=14, pady=(12, 14))
@@ -38,6 +42,15 @@ class GameCard(ctk.CTkFrame):
         bottom.pack(fill="x", pady=(10, 0))
         w.Badge(bottom, game.source, _SOURCE_COLORS.get(game.source)).pack(side="left")
         w.button(bottom, "Play", lambda: on_play(game), kind="primary", width=84, height=34).pack(side="right")
+
+
+    def _show_photo(self, path) -> None:
+        if path is None:
+            return
+        try:
+            self.cover.configure(image=art.photo(str(path), *_COVER))
+        except OSError:
+            pass  # a broken image file: keep the generated cover
 
 
 class GamesPage(Page):

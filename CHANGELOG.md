@@ -4,6 +4,16 @@ All notable changes to Kestrel are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Accounts with Supabase**: a sign-in / create-account screen on first launch, password reset, and an
+  Account card in Settings with sign out. Sessions are stored encrypted with Windows DPAPI.
+  Off until a Supabase project is configured — see [docs/SUPABASE.md](docs/SUPABASE.md).
+- **Continue with Google, Discord or GitHub**, using Supabase OAuth with PKCE and a local callback,
+  with each provider's logo on its button.
+- **Real cover art** on the Games page: Steam headers and Epic key art, cached in `%APPDATA%\Kestrel\covers`.
+
 ## [1.1.0] — 2026-11-21
 
 ### Added

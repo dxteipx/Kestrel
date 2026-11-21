@@ -341,7 +341,8 @@ def logo(size: int, start: str, end: str) -> ctk.CTkImage:
     return ctk.CTkImage(light_image=image, dark_image=image, size=(size, size))
 
 
-def banner(width: int, height: int, title: str, caption: str, start: str, end: str, base: str) -> ctk.CTkImage:
+def banner(width: int, height: int, title: str, caption: str, start: str, end: str, base: str,
+           radius: int = 0) -> ctk.CTkImage:
     """A tall aurora panel with the logo and name — the installer's side art."""
     w, h, s = _canvas(width, height, ss=2)
     image = Image.new("RGBA", (w, h), _rgb(base) + (255,))
@@ -356,7 +357,52 @@ def banner(width: int, height: int, title: str, caption: str, start: str, end: s
     draw.text((28 * s, h - 70 * s), title, font=_font("display", round(30 * s)), fill=(255, 255, 255), anchor="ls")
     draw.text((29 * s, h - 46 * s), caption, font=_font("body", round(13 * s)), fill=(255, 255, 255, 220),
               anchor="ls")
+    if radius:
+        image.putalpha(_rounded_mask(w, h, radius * s))
     return _finish(image, width, height)
+
+
+_GOOGLE_COLORS = (("#4285F4", -40, 35), ("#34A853", 35, 140), ("#FBBC05", 140, 215), ("#EA4335", 215, 320))
+
+
+@lru_cache(maxsize=32)
+def brand_icon(name: str, size: int, color: str) -> ctk.CTkImage:
+    """A brand mark from its 24x24 SVG path, filled even-odd so the holes stay open."""
+    from kestrel.content import brands
+    from kestrel.ui import svgpath
+
+    w, _, s = _canvas(size, size, ss=4)
+    scale = w / 24
+    mask = Image.new("L", (w, w), 0)
+    for shape in svgpath.parse(brands.PATHS[name]):
+        layer = Image.new("L", (w, w), 0)
+        ImageDraw.Draw(layer).polygon([(x * scale, y * scale) for x, y in shape], fill=255)
+        mask = ImageChops.logical_xor(mask.convert("1"), layer.convert("1")).convert("L")
+
+    if name == "google":
+        # Google's "G" is four colours; paint the single-colour mark by angle around its centre.
+        image = Image.new("RGBA", (w, w), (0, 0, 0, 0))
+        box = [-w * 0.5, -w * 0.5, w * 1.5, w * 1.5]
+        for hex_color, start, end in _GOOGLE_COLORS:
+            sector = Image.new("L", (w, w), 0)
+            ImageDraw.Draw(sector).pieslice(box, start, end, fill=255)
+            paint = Image.new("RGBA", (w, w), _rgb(hex_color) + (255,))
+            paint.putalpha(ImageChops.multiply(mask, sector))
+            image.alpha_composite(paint)
+    else:
+        image = Image.new("RGBA", (w, w), _rgb(color) + (0,))
+        image.putalpha(mask)
+    return _finish(image, size, size)
+
+
+@lru_cache(maxsize=128)
+def photo(path: str, width: int, height: int, radius: int = 12) -> ctk.CTkImage:
+    """A picture cropped to fill the box (like CSS object-fit: cover), with rounded corners."""
+    w, h, s = _canvas(width, height, ss=1)
+    with Image.open(path) as source:
+        image = ImageOps.fit(source.convert("RGBA"), (w, h), Image.LANCZOS, centering=(0.5, 0.35))
+    image.putalpha(_rounded_mask(w, h, radius * s))
+    return ctk.CTkImage(light_image=image, dark_image=image, size=(width, height))
 
 
 def write_icon(path: Path, start: str, end: str) -> None:

@@ -6,7 +6,7 @@ import customtkinter as ctk
 
 from kestrel import __app_name__, __author__, __repo__, __version__, icons, theme
 from kestrel.config import CONFIG_DIR
-from kestrel.core import shell, startup
+from kestrel.core import account, shell, startup
 from kestrel.log import LOG_FILE
 from kestrel.ui import art
 from kestrel.ui import widgets as w
@@ -45,6 +45,8 @@ class SettingsPage(Page):
 
     def build(self) -> None:
         settings = self.app.settings
+
+        self._account_card()
 
         look = w.Card(self.section(), "Appearance")
         look.pack(fill="x")
@@ -122,6 +124,39 @@ class SettingsPage(Page):
         w.button(data_control, "Reset", self._reset, kind="danger", width=80).pack(side="left", padx=(8, 0))
 
         self._about()
+
+    def _account_card(self) -> None:
+        card = w.Card(self.section(), "Account")
+        card.pack(fill="x")
+        row = ctk.CTkFrame(card.body, fg_color="transparent")
+        row.pack(fill="x")
+        session = self.app.session
+
+        if session is not None:
+            w.initial_tile(row, session.email, 44).pack(side="left")
+            text = ctk.CTkFrame(row, fg_color="transparent")
+            text.pack(side="left", fill="x", expand=True, padx=14)
+            w.label(text, session.email, 14, "bold").pack(anchor="w")
+            w.muted(text, "Signed in. Your account is ready for syncing.", 12).pack(anchor="w")
+            w.button(row, "Sign out", self._sign_out, kind="ghost", width=100).pack(side="right")
+            return
+
+        w.icon_chip(row, "shield", 44).pack(side="left")
+        text = ctk.CTkFrame(row, fg_color="transparent")
+        text.pack(side="left", fill="x", expand=True, padx=14)
+        if account.configured():
+            w.label(text, "Not signed in", 14, "bold").pack(anchor="w")
+            w.muted(text, "Sign in to keep your Kestrel setup with you.", 12).pack(anchor="w")
+            w.button(row, "Sign in", lambda: self.app.show_login("settings"), kind="primary",
+                     width=110).pack(side="right")
+        else:
+            w.label(text, "Accounts are off", 14, "bold").pack(anchor="w")
+            w.muted(text, "This build isn't connected to an account server. See docs/SUPABASE.md.", 12).pack(
+                anchor="w")
+
+    def _sign_out(self) -> None:
+        if self.app.confirm("Sign out?", "You can sign back in at any time.", "Sign out"):
+            self.app.sign_out()
 
     def _updates_card(self) -> None:
         settings = self.app.settings

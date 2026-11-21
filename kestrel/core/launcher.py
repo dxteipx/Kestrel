@@ -103,6 +103,7 @@ class Game:
     source: str
     target: str
     removable: bool = False
+    art_id: str = ""  # "steam:<appid>" or "epic:<catalog item id>", used to find cover art
 
 
 _STEAM_SKIP = re.compile(r"redistributable|steamworks|proton|steam linux runtime|soundtrack|dedicated server", re.I)
@@ -139,7 +140,7 @@ def steam_games() -> list[Game]:
             text = manifest.read_text("utf-8", errors="ignore")
             app_id, name = _vdf_value(text, "appid"), _vdf_value(text, "name")
             if app_id and name and not _STEAM_SKIP.search(name):
-                games[app_id] = Game(name, "Steam", f"steam://rungameid/{app_id}")
+                games[app_id] = Game(name, "Steam", f"steam://rungameid/{app_id}", art_id=f"steam:{app_id}")
     return list(games.values())
 
 
@@ -163,6 +164,7 @@ def epic_games() -> list[Game]:
         games.append(Game(
             data["DisplayName"], "Epic",
             f"com.epicgames.launcher://apps/{app_ref}?action=launch&silent=true",
+            art_id=f"epic:{catalog}" if catalog else "",
         ))
     return games
 

@@ -21,6 +21,7 @@ class Settings:
     auto_update: bool = True
     last_update_check: str = ""
     last_version: str = ""
+    login_skipped: bool = False
     pinned_apps: list[dict] = field(default_factory=list)
     custom_apps: list[dict] = field(default_factory=list)
     custom_games: list[dict] = field(default_factory=list)

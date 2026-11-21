@@ -33,6 +33,7 @@ Live stats, cleanup, drivers, startup apps and a launcher for your apps and game
 | **Games** | Picks up Steam and Epic libraries, detects launchers, add any game by hand, Game boost and a ping / packet-loss test |
 | **Tutorials** | Short, practical guides that link straight to the right page |
 | **Settings** | Light and dark themes, six gradient accents applied live, start with Windows, refresh rate, start page, admin mode, error log |
+| **Account** | Optional sign-in with Supabase, kept encrypted on your PC — [setup guide](docs/SUPABASE.md) |
 | **Updates** | Checks GitHub Releases every hour while open, then downloads and installs new versions by itself |
 
 Press <kbd>Ctrl</kbd> + <kbd>1</kbd>–<kbd>9</kbd> to jump between sections.
@@ -107,6 +108,7 @@ packaging/
 kestrel/
 ├── app.py               main window, navigation, toasts, refresh loop
 ├── config.py            settings saved to %APPDATA%\Kestrel
+├── cloud.py             Supabase project URL and public key
 ├── theme.py             palette, gradient accents and fonts
 ├── icons.py             Segoe Fluent / MDL2 glyphs
 ├── formatting.py        sizes, rates and durations
@@ -120,6 +122,8 @@ kestrel/
 │   ├── gpu.py           live NVIDIA GPU stats
 │   ├── network.py       ping, jitter and packet loss
 │   ├── updater.py       checks GitHub Releases and installs updates
+│   ├── account.py       Supabase sign-in and sessions
+│   ├── vault.py         DPAPI encryption for the saved session
 │   ├── optimizer.py     maintenance tasks and power plans
 │   ├── drivers.py       installed drivers and Windows Update
 │   ├── startup.py       startup programs

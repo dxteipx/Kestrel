@@ -10,11 +10,13 @@ import customtkinter as ctk
 from kestrel import __app_name__, __version__, icons, theme
 from kestrel.log import logger
 from kestrel.config import CONFIG_DIR, Settings
-from kestrel.core import shell, updater
+from kestrel import cloud
+from kestrel.core import account, shell, updater
 from kestrel.core.system import SystemMonitor
 from kestrel.ui import art, background, pages
 from kestrel.ui import widgets as w
 from kestrel.ui.pages.base import Page
+from kestrel.ui.login import LoginScreen
 from kestrel.ui.sidebar import Sidebar
 
 NAVIGATION = [
@@ -66,13 +68,20 @@ class KestrelApp(ctk.CTk):
         self._toast: ctk.CTkFrame | None = None
         self._toast_job: str | None = None
         self._updating = False
+        self.sidebar: Sidebar | None = None
+        self.content: ctk.CTkFrame | None = None
+        self.session = account.load() if account.configured() else None
 
         for index, key in enumerate(PAGE_TYPES, start=1):
             if index <= 9:
                 self.bind(f"<Control-Key-{index}>", lambda _e, k=key: self.navigate(k))
 
         start = self.settings.start_page if self.settings.start_page in PAGE_TYPES else "dashboard"
-        self._build(start)
+        if self._needs_login():
+            self.show_login(start)
+        else:
+            self._build(start)
+            self._refresh_session()
         self.after(200, self._tick)
         self.after(60, self._fade_in)
         self.after(20_000, self._scheduled_update_check)
@@ -159,7 +168,8 @@ class KestrelApp(ctk.CTk):
     def _tick(self) -> None:
         snapshot = self.monitor.sample()
         try:
-            self.sidebar.on_tick(snapshot)
+            if self.sidebar is not None and self.sidebar.winfo_exists():
+                self.sidebar.on_tick(snapshot)
             if self.current is not None:
                 self.current.on_tick(snapshot)
         finally:
@@ -168,6 +178,8 @@ class KestrelApp(ctk.CTk):
     # --- Feedback ---------------------------------------------------------
 
     def toast(self, message: str, kind: str = "success") -> None:
+        if self.content is None or not self.content.winfo_exists():
+            return
         if self._toast is not None and self._toast.winfo_exists():
             self._toast.destroy()
         if self._toast_job:
@@ -272,6 +284,60 @@ class KestrelApp(ctk.CTk):
         background.run(self, updater.download, release, on_done=downloaded, on_error=failed)
 
     # --- Preferences ------------------------------------------------------
+
+    # --- Account ----------------------------------------------------------
+
+    def _needs_login(self) -> bool:
+        if not account.configured() or self.session is not None:
+            return False
+        return cloud.REQUIRE_ACCOUNT or not self.settings.login_skipped
+
+    def show_login(self, then: str = "dashboard") -> None:
+        for child in self.winfo_children():
+            if not isinstance(child, ctk.CTkToplevel):
+                child.destroy()
+        self.sidebar = self.content = None
+        self._pages.clear()
+        self._current_key = None
+
+        def signed_in(session: account.Session) -> None:
+            self.session = session
+            account.save(session)
+            self._build(then)
+            self.toast(f"Signed in as {session.email}")
+
+        def skipped() -> None:
+            self.settings.login_skipped = True
+            self.settings.save()
+            self._build(then)
+
+        LoginScreen(self, signed_in, skipped).pack(fill="both", expand=True)
+
+    def _refresh_session(self) -> None:
+        """Renew the saved session in the background. Offline is fine: keep the old one."""
+        if self.session is None:
+            return
+
+        def renewed(session: account.Session) -> None:
+            self.session = session
+            account.save(session)
+
+        def failed(error: Exception) -> None:
+            if "expired" in str(error).lower():
+                self.session = None
+                account.clear()
+                self.toast("Your session expired. Sign in again from Settings → Account.", "info")
+
+        background.run(self, account.refresh, self.session, on_done=renewed, on_error=failed)
+
+    def sign_out(self) -> None:
+        session, self.session = self.session, None
+        account.clear()
+        if session is not None:
+            background.run(self, account.sign_out, session)
+        self.settings.login_skipped = False
+        self.settings.save()
+        self.show_login(self._current_key or "dashboard")
 
     def set_appearance(self, mode: str) -> None:
         self.settings.appearance = mode

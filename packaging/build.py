@@ -57,7 +57,7 @@ def pyinstaller(*args: str) -> None:
 
 
 def build_app() -> Path:
-    print("› Building Kestrel.exe")
+    print("> Building Kestrel.exe")
     pyinstaller(
         "--name", "Kestrel", "--windowed", "--onedir",
         "--icon", str(ICON),
@@ -70,7 +70,7 @@ def build_app() -> Path:
 
 
 def zip_payload(app_dir: Path) -> None:
-    print("› Packing payload")
+    print("> Packing payload")
     with zipfile.ZipFile(PAYLOAD, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for file in sorted(app_dir.rglob("*")):
             if file.is_file():
@@ -78,7 +78,7 @@ def zip_payload(app_dir: Path) -> None:
 
 
 def build_installer() -> Path:
-    print("› Building the installer")
+    print("> Building the installer")
     name = f"Kestrel-Setup-{__version__}"
     pyinstaller(
         "--name", name, "--windowed", "--onefile",
@@ -100,7 +100,7 @@ def main() -> None:
     zip_payload(app_dir)
     setup = build_installer()
     shutil.rmtree(BUILD / "work", ignore_errors=True)
-    print(f"\n✓ {setup.relative_to(ROOT)}  ({setup.stat().st_size / 1_048_576:.1f} MB)")
+    print(f"\nDone: {setup.relative_to(ROOT)}  ({setup.stat().st_size / 1_048_576:.1f} MB)")
 
 
 if __name__ == "__main__":

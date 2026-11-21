@@ -1,0 +1,43 @@
+name: Bug report
+description: Something in Kestrel doesn't work the way it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Drivers
+        2. Click "Check for updates"
+        3. ...
+  - type: input
+    id: version
+    attributes:
+      label: Kestrel version
+      description: Shown at the bottom of the sidebar.
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 23H2
+  - type: dropdown
+    id: install
+    attributes:
+      label: How do you run Kestrel?
+      options:
+        - Installer (Kestrel-Setup.exe)
+        - From source (python main.py)
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or error messages

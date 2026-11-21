@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Compile
+        run: python -m compileall -q kestrel packaging main.py
+
+      - name: Import every module
+        run: |
+          python -c "import kestrel.app, kestrel.core.health, kestrel.core.drivers, kestrel.core.launcher"
+          python -c "import sys; sys.path.insert(0, 'packaging'); import installer"

@@ -144,7 +144,12 @@ class SettingsPage(Page):
         w.icon_chip(row, "shield", 44).pack(side="left")
         text = ctk.CTkFrame(row, fg_color="transparent")
         text.pack(side="left", fill="x", expand=True, padx=14)
-        if account.configured():
+        if account.configured() and self.app.is_owner_device:
+            w.label(text, "Owner PC", 14, "bold").pack(anchor="w")
+            w.muted(text, "This PC is trusted, so signing in is optional here.", 12).pack(anchor="w")
+            w.button(row, "Sign in", lambda: self.app.show_login("settings"), kind="ghost",
+                     width=100).pack(side="right")
+        elif account.configured():
             w.label(text, "Not signed in", 14, "bold").pack(anchor="w")
             w.muted(text, "Sign in to keep your Kestrel setup with you.", 12).pack(anchor="w")
             w.button(row, "Sign in", lambda: self.app.show_login("settings"), kind="primary",

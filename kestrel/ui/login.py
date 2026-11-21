@@ -36,7 +36,8 @@ def _link(master, text: str, command: Callable) -> ctk.CTkLabel:
 
 
 class LoginScreen(ctk.CTkFrame):
-    def __init__(self, master, on_signed_in: Callable[[Session], None], on_skip: Callable[[], None]):
+    def __init__(self, master, on_signed_in: Callable[[Session], None], on_skip: Callable[[], None],
+                 allow_skip: bool = not cloud.REQUIRE_ACCOUNT):
         super().__init__(master, fg_color=theme.BG)
         self._on_signed_in, self._on_skip = on_signed_in, on_skip
         self._mode = "signin"
@@ -107,7 +108,7 @@ class LoginScreen(ctk.CTkFrame):
                 button.pack(side="left", padx=(0 if index == 0 else gap, 0))
                 self.provider_buttons.append(button)
 
-        if not cloud.REQUIRE_ACCOUNT:
+        if allow_skip:
             w.divider(form, pady=16)
             w.button(form, "Continue without an account", self._on_skip, kind="ghost",
                      width=_FORM_WIDTH).pack(anchor="w")

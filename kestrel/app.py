@@ -11,7 +11,7 @@ from kestrel import __app_name__, __version__, icons, theme
 from kestrel.log import logger
 from kestrel.config import CONFIG_DIR, Settings
 from kestrel import cloud
-from kestrel.core import account, shell, updater
+from kestrel.core import account, device, shell, updater
 from kestrel.core.system import SystemMonitor
 from kestrel.ui import art, background, pages
 from kestrel.ui import widgets as w
@@ -71,6 +71,7 @@ class KestrelApp(ctk.CTk):
         self.sidebar: Sidebar | None = None
         self.content: ctk.CTkFrame | None = None
         self.session = account.load() if account.configured() else None
+        self.is_owner_device = account.configured() and device.is_owner_device()
 
         for index, key in enumerate(PAGE_TYPES, start=1):
             if index <= 9:
@@ -288,7 +289,7 @@ class KestrelApp(ctk.CTk):
     # --- Account ----------------------------------------------------------
 
     def _needs_login(self) -> bool:
-        if not account.configured() or self.session is not None:
+        if not account.configured() or self.session is not None or self.is_owner_device:
             return False
         return cloud.REQUIRE_ACCOUNT or not self.settings.login_skipped
 
@@ -311,7 +312,8 @@ class KestrelApp(ctk.CTk):
             self.settings.save()
             self._build(then)
 
-        LoginScreen(self, signed_in, skipped).pack(fill="both", expand=True)
+        allow_skip = not cloud.REQUIRE_ACCOUNT or self.is_owner_device
+        LoginScreen(self, signed_in, skipped, allow_skip).pack(fill="both", expand=True)
 
     def _refresh_session(self) -> None:
         """Renew the saved session in the background. Offline is fine: keep the old one."""

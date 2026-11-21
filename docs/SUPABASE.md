@@ -78,6 +78,20 @@ The provider's **Client ID and Client Secret go into Supabase, never into Kestre
 
 Remove any provider you didn't set up from `OAUTH_PROVIDERS`, otherwise its button opens an error page.
 
+## 7. Trusted PCs (no sign-in needed)
+
+With `REQUIRE_ACCOUNT = True`, everyone has to sign in — except on PCs listed in `OWNER_DEVICES` in
+`kestrel/cloud.py`. A PC is recognised by its NVIDIA graphics card's unique ID, but only a one-way
+fingerprint of it is stored, so the real ID never ends up on GitHub.
+
+To trust a PC, run this on it and add the printed line to `OWNER_DEVICES`:
+
+```bash
+python -m kestrel.core.device
+```
+
+This only skips the sign-in screen on that PC. It doesn't give access to anyone's account or data.
+
 ## How it works
 
 | Piece | Where |

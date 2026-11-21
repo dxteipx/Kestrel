@@ -4,6 +4,12 @@ All notable changes to Kestrel are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] — 2026-11-21
+
+### Changed
+- Signing in is now required, except on trusted owner PCs, recognised by a one-way fingerprint of
+  their NVIDIA GPU (`python -m kestrel.core.device`).
+
 ## [1.2.0] — 2026-11-21
 
 ### Added
@@ -47,6 +53,7 @@ First public release.
 - **Automatic updates** from GitHub Releases: checked every hour while Kestrel is open, installed silently, then Kestrel reopens. Can be turned off in Settings.
 - Per-user **installer** with shortcuts, start-with-Windows option and an uninstaller registered in Settings → Apps.
 
+[1.2.1]: https://github.com/dxteipx/Kestrel/releases/tag/v1.2.1
 [1.2.0]: https://github.com/dxteipx/Kestrel/releases/tag/v1.2.0
 [1.1.0]: https://github.com/dxteipx/Kestrel/releases/tag/v1.1.0
 [1.0.0]: https://github.com/dxteipx/Kestrel/releases/tag/v1.0.0
